@@ -7,6 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 
 import { AppInput } from '../components/common/app-input';
@@ -14,59 +15,105 @@ import { AppButton } from '../components/common/app-button';
 
 import {
   validarNombre,
-  validarCorreo,
-  validarEdad,
+  validarPrecio,
+  validarStock,
+  validarCategoria,
 } from '../utils/validators';
 
-export default function Registro() {
+import { colors } from '../constants/colors';
+import { theme } from '../constants/theme';
 
-  const [nombre, setNombre] = useState('');
-  const [correo, setCorreo] = useState('');
-  const [edad, setEdad] = useState('');
+/* ------------------------------------------------------------------ */
+/*  Constantes                                                          */
+/* ------------------------------------------------------------------ */
 
-  const [error, setError] = useState('');
+const CATEGORIAS = ['Alimentos', 'Electrónica', 'Ropa', 'Hogar', 'Otros'];
+
+/* ------------------------------------------------------------------ */
+/*  Pantalla principal                                                  */
+/* ------------------------------------------------------------------ */
+
+export default function RegistroProducto() {
+
+  // Estado de campos
+  const [nombre, setNombre]       = useState('');
+  const [precio, setPrecio]       = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [stock, setStock]         = useState('');
+
+  // Estado de UI
+  const [error, setError]           = useState('');
   const [registrado, setRegistrado] = useState(false);
 
-  const nombreValido = validarNombre(nombre);
-  const correoValido = validarCorreo(correo);
-  const edadValida = validarEdad(edad);
+  /* Validaciones derivadas — se recalculan en cada render */
+  const nombreValido    = validarNombre(nombre);
+  const precioValido    = validarPrecio(precio);
+  const categoriaValida = validarCategoria(categoria);
+  const stockValido     = validarStock(stock);
 
-  const validarFormulario = () => {
-
+  /* Helper para limpiar mensajes al editar */
+  const resetFeedback = () => {
     setError('');
     setRegistrado(false);
+  };
+
+  /* Envío del formulario */
+  const handleGuardar = () => {
+    resetFeedback();
 
     if (!nombreValido) {
-      setError('Ingresa tu nombre completo.');
+      setError('El nombre del producto es obligatorio.');
       return;
     }
 
-    if (!correoValido) {
-      setError('Ingresa un correo electrónico válido.');
+    if (!precioValido) {
+      setError('El precio debe ser un número mayor a 0.');
       return;
     }
 
-    if (!edadValida) {
-      setError('La edad debe ser de 18 años o más.');
+    if (!categoriaValida) {
+      setError('Selecciona una categoría.');
+      return;
+    }
+
+    if (!stockValido) {
+      setError('El stock debe ser un número entero igual o mayor a 0.');
       return;
     }
 
     setRegistrado(true);
+
+    // Limpiar formulario tras éxito
+    setNombre('');
+    setPrecio('');
+    setCategoria('');
+    setStock('');
   };
+
+  /* Validaciones cumplidas (para el contador) */
+  const validacionesCumplidas = [
+    nombreValido,
+    precioValido,
+    categoriaValida,
+    stockValido,
+  ].filter(Boolean).length;
+
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                            */
+  /* ---------------------------------------------------------------- */
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
 
-        {/* ENCABEZADO */}
+        {/* ENCABEZADO ------------------------------------------------ */}
 
         <View style={styles.header}>
 
@@ -80,43 +127,40 @@ export default function Registro() {
             <Text style={styles.overline}>
               NUEVO REGISTRO
             </Text>
-
             <Text style={styles.title}>
-              Crear cuenta
+              Registro de{'\n'}Producto
             </Text>
           </View>
 
         </View>
 
-
         <Text style={styles.description}>
-          Completa tus datos para crear un nuevo registro.
+          Completa los datos del producto. Todos los campos son obligatorios.
         </Text>
 
 
-        {/* TARJETA DEL FORMULARIO */}
+        {/* TARJETA DEL FORMULARIO ------------------------------------ */}
 
         <View style={styles.formCard}>
 
           <Text style={styles.sectionTitle}>
-            Información personal
+            Información del producto
           </Text>
 
           <Text style={styles.sectionDescription}>
-            Todos los campos son obligatorios.
+            Los campos marcados son requeridos.
           </Text>
 
 
-          {/* NOMBRE */}
+          {/* NOMBRE -------------------------------------------------- */}
 
           <AppInput
-            label="Nombre completo"
-            placeholder="Ingresa tu nombre"
+            label="Nombre del producto *"
+            placeholder="Ej: Arroz Integral 1kg"
             value={nombre}
             onChangeText={(value) => {
               setNombre(value);
-              setError('');
-              setRegistrado(false);
+              resetFeedback();
             }}
           />
 
@@ -124,176 +168,186 @@ export default function Registro() {
             <Text
               style={[
                 styles.fieldStatus,
-                nombreValido
-                  ? styles.validText
-                  : styles.invalidText,
+                nombreValido ? styles.validText : styles.invalidText,
               ]}
             >
-              {nombreValido
-                ? '✓ Nombre válido'
-                : '○ Ingresa tu nombre'}
+              {nombreValido ? '✓ Nombre válido' : '○ Ingresa el nombre del producto'}
             </Text>
           )}
 
 
-          {/* CORREO */}
+          {/* PRECIO -------------------------------------------------- */}
 
           <AppInput
-            label="Correo electrónico"
-            placeholder="ejemplo@correo.com"
-            value={correo}
+            label="Precio (S/) *"
+            placeholder="Ej: 12.50"
+            value={precio}
             onChangeText={(value) => {
-              setCorreo(value);
-              setError('');
-              setRegistrado(false);
+              // Solo dígitos y un único punto decimal
+              const soloNumerico = value.replace(/[^0-9.]/g, '');
+              const sinPuntosExtra = soloNumerico.replace(/^(\d*\.?\d*).*$/, '$1');
+              setPrecio(sinPuntosExtra);
+              resetFeedback();
             }}
-            keyboardType="email-address"
+            keyboardType="decimal-pad"
           />
 
-          {correo.length > 0 && (
+          {precio.length > 0 && (
             <Text
               style={[
                 styles.fieldStatus,
-                correoValido
-                  ? styles.validText
-                  : styles.invalidText,
+                precioValido ? styles.validText : styles.invalidText,
               ]}
             >
-              {correoValido
-                ? '✓ Correo válido'
-                : '○ Debe contener un @'}
+              {precioValido ? '✓ Precio válido' : '○ Debe ser un número mayor a 0'}
             </Text>
           )}
 
 
-          {/* EDAD */}
+          {/* CATEGORÍA ----------------------------------------------- */}
+
+          <Text style={styles.chipLabel}>
+            Categoría *
+          </Text>
+
+          <View style={styles.chipContainer}>
+            {CATEGORIAS.map((cat) => {
+              const seleccionada = categoria === cat;
+              return (
+                <Pressable
+                  key={cat}
+                  style={[
+                    styles.chip,
+                    seleccionada && styles.chipSelected,
+                  ]}
+                  onPress={() => {
+                    setCategoria(cat);
+                    resetFeedback();
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      seleccionada && styles.chipTextSelected,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {categoria.length > 0 && (
+            <Text style={[styles.fieldStatus, styles.validText]}>
+              ✓ Categoría seleccionada: {categoria}
+            </Text>
+          )}
+
+
+          {/* STOCK --------------------------------------------------- */}
 
           <AppInput
-            label="Edad"
-            placeholder="Ingresa tu edad"
-            value={edad}
+            label="Stock (unidades) *"
+            placeholder="Ej: 50"
+            value={stock}
             onChangeText={(value) => {
-              setEdad(value);
-              setError('');
-              setRegistrado(false);
+              // Solo dígitos enteros, sin puntos ni letras
+              const soloEntero = value.replace(/[^0-9]/g, '');
+              setStock(soloEntero);
+              resetFeedback();
             }}
             keyboardType="numeric"
           />
 
-          {edad.length > 0 && (
+          {stock.length > 0 && (
             <Text
               style={[
                 styles.fieldStatus,
-                edadValida
-                  ? styles.validText
-                  : styles.invalidText,
+                stockValido ? styles.validText : styles.invalidText,
               ]}
             >
-              {edadValida
-                ? '✓ Edad permitida'
-                : '○ Debes tener 18 años o más'}
+              {stockValido
+                ? '✓ Stock válido'
+                : '○ Debe ser un número entero igual o mayor a 0'}
             </Text>
           )}
 
 
-          {/* ERROR */}
+          {/* ERROR --------------------------------------------------- */}
 
           {error !== '' && (
             <View style={styles.errorBox}>
 
               <View style={styles.errorIcon}>
-                <Text style={styles.errorIconText}>
-                  !
-                </Text>
+                <Text style={styles.errorIconText}>!</Text>
               </View>
 
               <View style={styles.messageContainer}>
-
                 <Text style={styles.errorTitle}>
                   No se pudo guardar
                 </Text>
-
                 <Text style={styles.errorMessage}>
                   {error}
                 </Text>
-
               </View>
 
             </View>
           )}
 
 
-          {/* ÉXITO */}
+          {/* ÉXITO --------------------------------------------------- */}
 
           {registrado && (
             <View style={styles.successBox}>
 
               <View style={styles.successIcon}>
-                <Text style={styles.successIconText}>
-                  ✓
-                </Text>
+                <Text style={styles.successIconText}>✓</Text>
               </View>
 
               <View style={styles.messageContainer}>
-
                 <Text style={styles.successTitle}>
-                  ¡Registro exitoso!
+                  ¡Producto registrado!
                 </Text>
-
                 <Text style={styles.successMessage}>
-                  Todos los datos son válidos.
+                  El producto fue guardado correctamente.
                 </Text>
-
               </View>
 
             </View>
           )}
 
 
-          {/* BOTÓN */}
+          {/* BOTÓN --------------------------------------------------- */}
 
           <AppButton
-            title="Guardar datos"
-            onPress={validarFormulario}
+            title="Registrar producto"
+            onPress={handleGuardar}
           />
 
         </View>
 
 
-        {/* VALIDACIONES */}
+        {/* SECCIÓN DE VALIDACIONES ----------------------------------- */}
 
         <View style={styles.validationSection}>
 
           <View style={styles.validationHeader}>
 
             <View>
-              <Text style={styles.validationTitle}>
-                Validaciones
-              </Text>
-
+              <Text style={styles.validationTitle}>Validaciones</Text>
               <Text style={styles.validationSubtitle}>
                 Reglas aplicadas al formulario
               </Text>
             </View>
 
             <View style={styles.counter}>
-
               <Text style={styles.counterText}>
-                {
-                  [
-                    nombreValido,
-                    correoValido,
-                    edadValida,
-                  ].filter(Boolean).length
-                }/3
+                {validacionesCumplidas}/4
               </Text>
-
             </View>
 
           </View>
-
-
-          {/* VALIDACIÓN 1 */}
 
           <ValidationRow
             title="Nombre obligatorio"
@@ -301,41 +355,42 @@ export default function Registro() {
             valid={nombreValido}
           />
 
-
-          {/* VALIDACIÓN 2 */}
-
           <ValidationRow
-            title="Correo electrónico"
-            description="Debe contener un formato válido."
-            valid={correoValido}
+            title="Precio mayor a 0"
+            description="Debe ser un número positivo (decimales permitidos)."
+            valid={precioValido}
           />
 
-
-          {/* VALIDACIÓN 3 */}
+          <ValidationRow
+            title="Categoría seleccionada"
+            description="Debe elegirse una categoría de la lista."
+            valid={categoriaValida}
+          />
 
           <ValidationRow
-            title="Edad mínima"
-            description="La edad debe ser igual o mayor a 18."
-            valid={edadValida}
+            title="Stock válido"
+            description="Debe ser un número entero igual o mayor a 0."
+            valid={stockValido}
           />
 
         </View>
 
 
-        {/* PIE */}
+        {/* PIE ------------------------------------------------------ */}
 
         <Text style={styles.footer}>
-          Ejemplo de formulario con validaciones
+          AP5 — Formularios y Validaciones · React Native + Expo
         </Text>
 
       </ScrollView>
-
     </KeyboardAvoidingView>
   );
 }
 
 
-/* COMPONENTE PARA LAS VALIDACIONES */
+/* ------------------------------------------------------------------ */
+/*  Componente auxiliar ValidationRow                                  */
+/* ------------------------------------------------------------------ */
 
 type ValidationRowProps = {
   title: string;
@@ -343,71 +398,45 @@ type ValidationRowProps = {
   valid: boolean;
 };
 
-function ValidationRow({
-  title,
-  description,
-  valid,
-}: ValidationRowProps) {
-
+function ValidationRow({ title, description, valid }: ValidationRowProps) {
   return (
     <View style={styles.validationRow}>
 
       <View
         style={[
           styles.validationCircle,
-          valid
-            ? styles.validationCircleValid
-            : styles.validationCirclePending,
+          valid ? styles.validationCircleValid : styles.validationCirclePending,
         ]}
       >
-
         <Text
           style={[
             styles.validationIcon,
-            valid
-              ? styles.validationIconValid
-              : styles.validationIconPending,
+            valid ? styles.validationIconValid : styles.validationIconPending,
           ]}
         >
           {valid ? '✓' : '○'}
         </Text>
-
       </View>
-
 
       <View style={styles.validationInfo}>
-
-        <Text style={styles.validationRowTitle}>
-          {title}
-        </Text>
-
-        <Text style={styles.validationRowDescription}>
-          {description}
-        </Text>
-
+        <Text style={styles.validationRowTitle}>{title}</Text>
+        <Text style={styles.validationRowDescription}>{description}</Text>
       </View>
-
 
       <View
         style={[
           styles.statusBadge,
-          valid
-            ? styles.statusBadgeValid
-            : styles.statusBadgePending,
+          valid ? styles.statusBadgeValid : styles.statusBadgePending,
         ]}
       >
-
         <Text
           style={[
             styles.statusBadgeText,
-            valid
-              ? styles.statusBadgeTextValid
-              : styles.statusBadgeTextPending,
+            valid ? styles.statusBadgeTextValid : styles.statusBadgeTextPending,
           ]}
         >
           {valid ? 'OK' : 'Pendiente'}
         </Text>
-
       </View>
 
     </View>
@@ -415,7 +444,9 @@ function ValidationRow({
 }
 
 
-/* ESTILOS */
+/* ------------------------------------------------------------------ */
+/*  Estilos                                                             */
+/* ------------------------------------------------------------------ */
 
 const styles = StyleSheet.create({
 
@@ -425,7 +456,7 @@ const styles = StyleSheet.create({
   },
 
   scroll: {
-    padding: 20,
+    padding: theme.spacing.medium,
     paddingTop: 45,
     paddingBottom: 35,
   },
@@ -443,7 +474,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -458,40 +489,41 @@ const styles = StyleSheet.create({
   overline: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#6366F1',
+    color: colors.primary,
     letterSpacing: 1.5,
     marginBottom: 3,
   },
 
   title: {
-    fontSize: 26,
+    fontSize: theme.fontSize.title,
     fontWeight: '800',
-    color: '#172033',
+    color: colors.text,
+    lineHeight: 32,
   },
 
   description: {
     fontSize: 14,
     lineHeight: 21,
     color: '#667085',
-    marginBottom: 24,
+    marginBottom: theme.spacing.large,
   },
 
 
   /* FORMULARIO */
 
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
     borderColor: '#E8EBF0',
-    marginBottom: 20,
+    marginBottom: theme.spacing.medium,
   },
 
   sectionTitle: {
     fontSize: 19,
     fontWeight: '800',
-    color: '#172033',
+    color: colors.text,
     marginBottom: 4,
   },
 
@@ -502,7 +534,7 @@ const styles = StyleSheet.create({
   },
 
 
-  /* ESTADO DE CAMPOS */
+  /* ESTADO INLINE DE CAMPOS */
 
   fieldStatus: {
     fontSize: 11,
@@ -512,7 +544,7 @@ const styles = StyleSheet.create({
   },
 
   validText: {
-    color: '#16A34A',
+    color: colors.success,
   },
 
   invalidText: {
@@ -520,7 +552,48 @@ const styles = StyleSheet.create({
   },
 
 
-  /* ERROR */
+  /* CHIPS DE CATEGORÍA */
+
+  chipLabel: {
+    fontSize: theme.fontSize.body,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: theme.spacing.small,
+  },
+
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: theme.spacing.medium,
+  },
+
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+
+  chipTextSelected: {
+    color: '#FFFFFF',
+  },
+
+
+  /* MENSAJE DE ERROR */
 
   errorBox: {
     flexDirection: 'row',
@@ -543,7 +616,7 @@ const styles = StyleSheet.create({
   },
 
   errorIconText: {
-    color: '#DC2626',
+    color: colors.error,
     fontSize: 17,
     fontWeight: '800',
   },
@@ -566,7 +639,7 @@ const styles = StyleSheet.create({
   },
 
 
-  /* ÉXITO */
+  /* MENSAJE DE ÉXITO */
 
   successBox: {
     flexDirection: 'row',
@@ -589,7 +662,7 @@ const styles = StyleSheet.create({
   },
 
   successIconText: {
-    color: '#16A34A',
+    color: colors.success,
     fontSize: 17,
     fontWeight: '800',
   },
@@ -607,10 +680,10 @@ const styles = StyleSheet.create({
   },
 
 
-  /* VALIDACIONES */
+  /* SECCIÓN VALIDACIONES */
 
   validationSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
@@ -627,7 +700,7 @@ const styles = StyleSheet.create({
   validationTitle: {
     fontSize: 19,
     fontWeight: '800',
-    color: '#172033',
+    color: colors.text,
     marginBottom: 3,
   },
 
@@ -646,13 +719,13 @@ const styles = StyleSheet.create({
   },
 
   counterText: {
-    color: '#4F46E5',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '800',
   },
 
 
-  /* FILAS */
+  /* FILAS DE VALIDACIÓN */
 
   validationRow: {
     flexDirection: 'row',
@@ -685,7 +758,7 @@ const styles = StyleSheet.create({
   },
 
   validationIconValid: {
-    color: '#16A34A',
+    color: colors.success,
   },
 
   validationIconPending: {
@@ -738,7 +811,7 @@ const styles = StyleSheet.create({
   },
 
 
-  /* FOOTER */
+  /* PIE */
 
   footer: {
     textAlign: 'center',

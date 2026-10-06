@@ -12,7 +12,7 @@ type AppInputProps = {
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
-  keyboardType?: 'default' | 'email-address' | 'numeric';
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'decimal-pad';
 };
 
 export const AppInput = ({
